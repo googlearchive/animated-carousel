@@ -1,0 +1,7 @@
+{
+  "name": "animated-carousel",
+  "private": true,
+  "dependencies": {
+    "polymer": "Polymer/polymer#2"
+  }
+}

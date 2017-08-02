@@ -1,0 +1,90 @@
+<!--
+@license
+Copyright (c) 2017 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+<script>
+
+  const MyMixin = superclass => class extends superclass {
+
+    static get properties() {
+      return {
+        selected: {
+          type: Object,
+          observer: '_selectedChanged'
+        },
+        loading: {
+          type: Boolean,
+          observer: '_updateTransitioning'
+        },
+        _animationTarget: { type: Element },
+        _transitioning: { type: Boolean },
+        _animating: { type: Boolean }
+      };
+    }
+
+    ready() {
+      super.ready();
+      this.shadowRoot.addEventListener('slotchange', this._resetSelected.bind(this));
+      this.shadowRoot.addEventListener('transitionend', this._onTransitionend.bind(this));
+      this.shadowRoot.addEventListener('animationiteration', this._onAnimationiteration.bind(this));
+    }
+
+    connectedCallback() {
+      super.connectedCallback();
+      this._resetSelected();
+    }
+
+    _selectedChanged(selected, oldSelected) {
+      if (oldSelected) oldSelected.removeAttribute('selected');
+      if (selected) selected.setAttribute('selected', '');
+    }
+
+    _resetSelected() {
+      if (!this.selected || this.selected.parentElement !== this) {
+        this.selected = this.firstElementChild;
+      }
+    }
+
+    _updateTransitioning() {
+      // Postpone toggling of transition class after next animation loop.
+      if (!this._animating) {
+        this._transitioning = true;
+        this._animationTarget.classList.toggle('loadingTransition', !!this.loading);
+      }
+    }
+
+    _updateAnimating() {
+      // Postpone toggling of animation class after the transition is done.
+      if (!this._transitioning) {
+        this._animating = this.loading;
+        this._animationTarget.classList.toggle('loadingAnimation', !!this._animating);
+      }
+    }
+
+    _onTransitionend(event) {
+      if (event.target === this._animationTarget) {
+        this._transitioning = false;
+        this._updateAnimating();
+      }
+    }
+
+    _onAnimationiteration(event) {
+      if (event.target === this._animationTarget) {
+        this._updateAnimating();
+        // Was transition postponed?
+        if (this.loading !== this._animationTarget.classList.contains('loadingTransition')) {
+          // Force style recalc by poking `transition` to ensure next transition.
+          getComputedStyle(this._animationTarget).transition;
+          this._updateTransitioning();
+        }
+      }
+    }
+
+  };
+
+</script>
