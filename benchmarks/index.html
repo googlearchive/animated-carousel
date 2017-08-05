@@ -1,0 +1,136 @@
+<!--
+@license
+Copyright (c) 2017 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=yes">
+
+  <title>benchmarks</title>
+
+  <style>
+    #testContainer {
+      position: relative;
+      height: 300px;
+      margin-bottom: 20px; 
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="testContainer"></div>
+  <pre id="out"></pre>
+  <script>
+    const tests = [
+      '/work',
+      '/step-03',
+      '/step-04',
+      '/step-05',
+    ];
+    const runs = 10;
+
+    let iframe, testIndex = 0;
+    let carousel, children, times, directionMethod, run;
+
+    reset();
+
+    function reset() {
+      if (testIndex === tests.length) {
+        return;
+      }
+      if (iframe) iframe.remove();
+      iframe = document.createElement('iframe');
+      iframe.onload = startTest;
+      iframe.src = tests[testIndex++];
+      out.textContent += `\nTesting ${iframe.src} ...\n\n`;
+      testContainer.appendChild(iframe);
+    }
+
+    function startTest() {
+      carousel = iframe.contentWindow.document.querySelector('my-carousel');
+      // stop the iframe's interval.
+      carousel.click();
+
+      children = Array.from(carousel.children);
+      times = children.map(el => {
+        const elTimes = [];
+        el.addEventListener('transitionend', event => {
+          const last = elTimes[elTimes.length - 1];
+          last.end = performance.now();
+          last.diff = last.end - last.start;
+          doNextPrevious();
+        });
+        return elTimes;
+      });
+      directionMethod = 'next';
+      run = 0;
+      doNextPrevious();
+    }
+
+    function doNextPrevious() {
+      doNextPrevious.raf && cancelAnimationFrame(doNextPrevious.raf);
+      doNextPrevious.raf = requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (directionMethod === 'next' && !carousel.selected.nextElementSibling) {
+          run++;
+          directionMethod = 'previous';
+        } else if (directionMethod === 'previous' && !carousel.selected.previousElementSibling) {
+          run++;
+          directionMethod = 'next';
+        }
+        if (run >= runs) {
+          logTimes();
+          reset();
+          return;
+        }
+        const i = children.indexOf(carousel.selected);
+        const time = performance.now();
+        times[i].push({
+          start: time
+        });
+        const increment = directionMethod === 'next' ? 1 : -1;
+        times[i + increment].push({
+          start: time
+        });
+        carousel[directionMethod]();
+      }));
+    }
+
+    function logTimes() {
+      out.textContent += [
+        'Image',
+        'Runs',
+        'Avg (ms)',
+        'Min (ms)',
+        'Max (ms)',
+      ].join('\t\t') + '\n';
+      times.forEach((array, i) => {
+        const img = children[i].src.substr(children[i].src.lastIndexOf('/') + 1);
+        const min = array.reduce((sum, val) => Math.min(sum, val.diff), Infinity);
+        const max = array.reduce((sum, val) => Math.max(sum, val.diff), -Infinity);
+        const avg = array.reduce((sum, val) => sum + val.diff, 0) / array.length;
+        out.textContent += [
+          img,
+          array.length,
+          avg.toFixed(5),
+          min.toFixed(5),
+          max.toFixed(5)
+        ].join('\t\t') + '\n';
+      });
+    }
+  </script>
+</body>
+
+</html>
