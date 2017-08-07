@@ -78,8 +78,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this._updateAnimating();
         // Was transition postponed?
         if (this.loading !== this._animationTarget.classList.contains('loadingTransition')) {
-          // Force style recalc by poking `transition` to ensure next transition.
-          getComputedStyle(this._animationTarget).transition;
+          // Force style and layout recalc.
+          this._animationTarget.offsetWidth;
           this._updateTransitioning();
         }
       }

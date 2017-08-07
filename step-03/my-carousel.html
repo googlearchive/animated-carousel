@@ -153,9 +153,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       _translateX(elem, x, transition) {
-        // Force style recalc by poking `transition` to ensure we animate.
+        // Force style recalc by poking `transform`.
         if (transition) {
-          getComputedStyle(elem).transition;
+          getComputedStyle(elem).transform;
         }
         elem.style.display = 'block';
         elem.style.transition = transition ? 'transform 0.2s' : '';
